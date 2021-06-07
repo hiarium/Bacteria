@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 4377547830075847194}
   m_Layer: 5
   m_Name: Bacteria
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -137,5 +137,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d1c33461ff5f81e44a23f6df8236f7af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  xspeed: 0
-  yspeed: 0
+  speed: 0
