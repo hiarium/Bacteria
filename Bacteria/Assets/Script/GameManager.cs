@@ -91,7 +91,7 @@ public class GameManager : MonoBehaviour
                 lRend.GetPositions(lPos);
                 while(selectObject.Count!=0){
                     selectObject[0].GetComponent<Bacteria>().state = 'M';
-                    selectObject[0].GetComponent<Bacteria>().movepoint = lPos[1]-lPos[0];
+                    selectObject[0].GetComponent<Bacteria>().movepoint = lPos[1];
                     selectObject.RemoveAt(0);
                 }
                 // 全line削除

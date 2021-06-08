@@ -138,3 +138,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 0
+  state: 0
+  movepoint: {x: 0, y: 0}
+  rigidbody: {fileID: 0}

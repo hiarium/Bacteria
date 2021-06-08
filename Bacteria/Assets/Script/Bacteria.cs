@@ -10,10 +10,12 @@ public class Bacteria : MonoBehaviour
     public Vector2 movepoint;
     private float time=1;
     private Coroutine div;
+    public Rigidbody rigidbody;
 
     // Start is called before the first frame update
-    void Start()
-    {
+    void Start() {
+        speed = 0.002f;
+        rigidbody = this.GetComponent<Rigidbody>();
         state = 'D';
     }
 
@@ -43,17 +45,27 @@ public class Bacteria : MonoBehaviour
         }
         // 移動(Move)
         if(state=='M'){
-            while(movepoint!=new Vector2(0,0)){
-                
+            Vector2 bPos = transform.position;
+            // 終了判定
+            if(Mathf.Abs(movepoint.x-transform.position.x)<0.1f &&Mathf.Abs(movepoint.y-transform.position.y)<0.1f){
+                state='D';
             }
-        }else{
-            
+            // 移動処理
+            if(movepoint.x>transform.position.x){
+                transform.position += new Vector3(speed, 0, 0);
+            }else if(movepoint.x<transform.position.x){
+                transform.position += new Vector3(-speed, 0, 0);
+            }
+
+            if(movepoint.y>transform.position.y){
+                transform.position += new Vector3(0, speed, 0);
+            }else if(movepoint.y<transform.position.y){
+                transform.position += new Vector3(0,-speed, 0);
+            }
         }
         // 戦闘(Fight)
         if(state=='F'){
 
-        }else{
-            
         }
     }
 
@@ -66,8 +78,6 @@ public class Bacteria : MonoBehaviour
         {
             yield return new WaitForSeconds(3.0f);
             local = transform.InverseTransformPoint (transform.position);
-            Debug.Log(transform.position);
-            Debug.Log(local);
             direction=transform.TransformPoint (local+new Vector3(1.02f,0,0));
             hit = Physics2D.BoxCast(direction, transform.lossyScale, 0, Vector2.zero);
             if(hit.collider==null){
@@ -88,4 +98,23 @@ public class Bacteria : MonoBehaviour
         Color color =new Color(255,255,255, Mathf.Sin(time) * 0.5f + 0.5f);
         return color;
     }
+    /*
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if(collision.gameObject.tag=="enemy"){
+            state='F';
+        }else if(collision.gameObject.tag=="stage"){
+            state='D';
+        }
+    }
+
+    void OnCollisionExit2D(Collision2D collision)
+    {
+        if(Mathf.Abs(movepoint.x-transform.position.x)<0.1f &&Mathf.Abs(movepoint.y-transform.position.y)<0.1f){
+            state='M';
+        }else{
+            state='D';
+        }
+    }
+    */
 }
