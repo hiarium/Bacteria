@@ -10,7 +10,8 @@ public class Bacteria : MonoBehaviour
     public Vector2 movepoint;
     private float time=1;
     private Coroutine div;
-    public Rigidbody rigidbody;
+    private Rigidbody rigidbody;
+    private Vector2 direction;
 
     // Start is called before the first frame update
     void Start() {
@@ -28,11 +29,9 @@ public class Bacteria : MonoBehaviour
             if(div==null){
                 div = StartCoroutine("Division");
             }
-        }else{
-            if(div!=null){
-                StopCoroutine(div);
-                div = null;
-            }
+        }else if(div!=null){
+            StopCoroutine(div);
+            div=null;
         }
         // 選択(Select)
         if(state=='S'){
@@ -72,25 +71,38 @@ public class Bacteria : MonoBehaviour
     private IEnumerator Division()
     {
         Vector3 local = transform.InverseTransformPoint (transform.position);
-        Vector3 direction=transform.TransformPoint (local+new Vector3(1.02f,0,0));
+        direction=local+new Vector3(-1.02f,1.02f,0);
         RaycastHit2D hit;
-        while (true)
+        while (state=='D')
         {
             yield return new WaitForSeconds(3.0f);
-            local = transform.InverseTransformPoint (transform.position);
-            direction=transform.TransformPoint (local+new Vector3(1.02f,0,0));
-            hit = Physics2D.BoxCast(direction, transform.lossyScale, 0, Vector2.zero);
-            if(hit.collider==null){
-                Instantiate ((GameObject)Resources.Load("Bacteria"), direction, Quaternion.identity,GameObject.Find("Canvas").transform);
+            for(int i=0;i<816;i++){
+                hit = Physics2D.BoxCast(transform.TransformPoint (direction), transform.lossyScale, 0, Vector2.zero);
+                if(hit.collider==null){
+                    Instantiate ((GameObject)Resources.Load("Bacteria"),transform.TransformPoint (direction), Quaternion.identity,GameObject.Find("Canvas").transform);
+                    direction=local+new Vector3(-1.02f,1.02f,0);
+                    break;
+                }
+                if(i<204){
+                    direction.x+=0.01f;
+                    continue;
+                }else if(i<408){
+                    direction.y-=0.01f;
+                    continue;
+                }else if(i<612){
+                    direction.x-=0.01f;
+                    continue;
+                }else{
+                    direction.y+=0.01f;
+                }
             }
         }
     }
     
     private void OnDrawGizmos()
     {
-        Vector3 local = transform.InverseTransformPoint (transform.position);
         Gizmos.color = Color.red; //色指定
-        Gizmos.DrawCube(transform.TransformPoint (local+new Vector3(1.02f,0,0)), transform.lossyScale); //中心点とサイズ
+        Gizmos.DrawCube(transform.TransformPoint (direction), transform.lossyScale); //中心点とサイズ
     }
 
     Color GetAlphaColor() {
