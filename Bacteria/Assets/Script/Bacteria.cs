@@ -10,14 +10,16 @@ public class Bacteria : MonoBehaviour
     public Vector2 movepoint;
     private float time=1;
     private Coroutine div;
-    private Rigidbody rigidbody;
+    private Rigidbody2D rb;
     private Vector2 direction;
+    private Vector2 bpos;
 
     // Start is called before the first frame update
     void Start() {
-        speed = 0.002f;
-        rigidbody = this.GetComponent<Rigidbody>();
+        speed = 0.8f;
+        rb = this.GetComponent<Rigidbody2D>();
         state = 'D';
+        bpos=transform.position;
     }
 
     // Update is called once per frame
@@ -44,23 +46,24 @@ public class Bacteria : MonoBehaviour
         }
         // 移動(Move)
         if(state=='M'){
-            Vector2 bPos = transform.position;
-            // 終了判定
-            if(Mathf.Abs(movepoint.x-transform.position.x)<0.1f &&Mathf.Abs(movepoint.y-transform.position.y)<0.1f){
-                state='D';
-            }
             // 移動処理
             if(movepoint.x>transform.position.x){
-                transform.position += new Vector3(speed, 0, 0);
+                rb.velocity = new Vector2(speed,rb.velocity.y);
             }else if(movepoint.x<transform.position.x){
-                transform.position += new Vector3(-speed, 0, 0);
+                rb.velocity = new Vector2(-speed,rb.velocity.y);
             }
-
             if(movepoint.y>transform.position.y){
-                transform.position += new Vector3(0, speed, 0);
+                rb.velocity = new Vector2(rb.velocity.x,speed);
             }else if(movepoint.y<transform.position.y){
-                transform.position += new Vector3(0,-speed, 0);
+                rb.velocity = new Vector2(rb.velocity.x,-speed);
             }
+            // 終了判定
+            if(Mathf.Abs(movepoint.x-transform.position.x)<0.01f &&Mathf.Abs(movepoint.y-transform.position.y)<0.01f||(Mathf.Abs(bpos.x-transform.position.x)<0.01f &&Mathf.Abs(bpos.y-transform.position.y)<0.01f&&bpos.x-transform.position.x!=0)){
+                state='D';
+            }
+            bpos=transform.position;
+        }else{
+            rb.velocity = new Vector2(0, 0);
         }
         // 戦闘(Fight)
         if(state=='F'){
@@ -97,12 +100,6 @@ public class Bacteria : MonoBehaviour
                 }
             }
         }
-    }
-    
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red; //色指定
-        Gizmos.DrawCube(transform.TransformPoint (direction), transform.lossyScale); //中心点とサイズ
     }
 
     Color GetAlphaColor() {
