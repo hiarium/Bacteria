@@ -14,4 +14,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Match.unity
     guid: 2cda990e2423bbf4892e6590ba056729
+  - enabled: 0
+    path: Assets/Monobit Unity Networking/Samples/Scenes/RandomMatchingReconnect/OfflineSceneReconnect.unity
+    guid: 06881064e78766e40bc14f1ac76ccd96
+  - enabled: 0
+    path: Assets/Monobit Unity Networking/Samples/Scenes/RandomMatchingReconnect/OnlineSceneReconnect.unity
+    guid: 9d07048bd87df944b9a935f8e33a4514
   m_configObjects: {}

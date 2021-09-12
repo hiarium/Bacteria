@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using MonobitEngine;
 
-public class Bacteria : MonoBehaviour
+public class Bacteria : MonobitEngine.MonoBehaviour
 {
     public float speed;
     public char state;
@@ -13,6 +14,26 @@ public class Bacteria : MonoBehaviour
     private Rigidbody2D rb;
     private Vector2 direction;
     private Vector2 bpos;
+    MonobitEngine.MonobitView m_MonobitView = null;
+    
+    void Awake()
+    {
+        // すべての親オブジェクトに対して MonobitView コンポーネントを検索する
+        if (GetComponentInParent<MonobitEngine.MonobitView>() != null)
+        {
+            m_MonobitView = GetComponentInParent<MonobitEngine.MonobitView>();
+        }
+        // 親オブジェクトに存在しない場合、すべての子オブジェクトに対して MonobitView コンポーネントを検索する
+        else if (GetComponentInChildren<MonobitEngine.MonobitView>() != null)
+        {
+            m_MonobitView = GetComponentInChildren<MonobitEngine.MonobitView>();
+        }
+        // 親子オブジェクトに存在しない場合、自身のオブジェクトに対して MonobitView コンポーネントを検索して設定する
+        else
+        {
+            m_MonobitView = GetComponent<MonobitEngine.MonobitView>();
+        }
+    }
 
     // Start is called before the first frame update
     void Start() {
@@ -20,13 +41,19 @@ public class Bacteria : MonoBehaviour
         rb = this.GetComponent<Rigidbody2D>();
         state = 'D';
         bpos=transform.position;
+        transform.parent =GameObject.Find("Canvas").transform;
     }
 
     // Update is called once per frame
     void Update()
     {
+        if( !m_MonobitView.isMine )
+        {
+            return;
+        }
         // 状態変数によって行動を分岐
         // 分裂(Division)
+        /*
         if(state=='D'){
             if(div==null){
                 div = StartCoroutine("Division");
@@ -35,6 +62,7 @@ public class Bacteria : MonoBehaviour
             StopCoroutine(div);
             div=null;
         }
+        */
         // 選択(Select)
         if(state=='S'){
             this.GetComponent<Image>().color = GetAlphaColor();

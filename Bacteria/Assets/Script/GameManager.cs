@@ -1,10 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using MonobitEngine;
 
-public class GameManager : MonoBehaviour
+public class GameManager : MonobitEngine.MonoBehaviour
 {
-    public int fun_counter = 1;
+    private bool first=true;
     private LineRenderer line1;
     private LineRenderer lRend;
     private GameObject line2; 
@@ -13,14 +14,14 @@ public class GameManager : MonoBehaviour
     private Vector3 before_pos;
     private bool circle = false;
     private List<GameObject> selectObject = new List<GameObject>();
-    // Start is called before the first frame update
+    private string roomName = "";
+    
     void Start()
     {
         line1 = gameObject.GetComponent<LineRenderer>();
         collider = gameObject.GetComponent<PolygonCollider2D>();
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (Input.GetMouseButtonDown(0))
@@ -102,6 +103,25 @@ public class GameManager : MonoBehaviour
                 line1.loop = false;
             }
         }
+
+        if (MonobitNetwork.room.playerCount==2 && first){
+            float x_renge;
+            string character;
+            // プレイヤーキャラクタが未登場の場合に登場させる
+            if(MonobitNetwork.isHost){
+                x_renge = -6.6f;
+                character = "Bacteria";
+            }else{
+                x_renge = 5.0f;
+                character = "enemy";
+            }
+            for(int i=0;i<10;i++){
+                float x = Random.Range(x_renge, x_renge+1.6f);
+        		float y = Random.Range(-1.1f, 1.1f);
+                MonobitNetwork.Instantiate(character,new Vector3(x,y,0), Quaternion.identity,0);
+            }
+            first=false;
+        }
     }
 
     private IEnumerator Line()
@@ -157,6 +177,60 @@ public class GameManager : MonoBehaviour
         if(collider.gameObject.tag == "Player"){
             selectObject.Add(collider.gameObject);
             collider.gameObject.GetComponent<Bacteria>().state = 'S';
+        }
+    }
+
+    void OnGUI()
+    {
+        if (MonobitNetwork.isConnect){
+            // ボタン入力でサーバから切断＆シーンリセット
+            if (GUILayout.Button("Disconnect", GUILayout.Width(150))){
+                // サーバから切断する
+                MonobitNetwork.DisconnectServer();
+ 
+                // シーンをリロードする
+                #if UNITY_5_3_OR_NEWER || UNITY_5_3
+                string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+                UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
+                #else
+                Application.LoadLevel(Application.loadedLevelName);
+                #endif
+            }
+            if (!MonobitNetwork.inRoom){
+                //ルーム名の入力
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("RoomName : ");
+                roomName = GUILayout.TextField(roomName, GUILayout.Width(200));
+                GUILayout.EndHorizontal();
+
+                //ルームを作成して入室
+                if (GUILayout.Button("Create Room", GUILayout.Width(150))){
+                    MonobitNetwork.CreateRoom(roomName);
+                }
+
+                //ルーム一覧を検索
+                foreach( RoomData room in MonobitNetwork.GetRoomData()){
+                    // ルームパラメータの可視化
+                    System.String roomParam =
+                        System.String.Format(
+                            "{0}({1}/{2})",
+                            room.name,
+                            room.playerCount,
+                            ((room.maxPlayers == 0) ? "-" : room.maxPlayers.ToString())
+                        );
+ 
+                    // ルームを選択して入室する
+                    if (GUILayout.Button("Enter Room : " + roomParam)){
+                        MonobitNetwork.JoinRoom(room.name);
+                    }
+                }
+            }
+        }else{
+            MonobitNetwork.autoJoinLobby = true;
+            // MUNサーバに接続する
+            if( GUILayout.Button("Connect Server", GUILayout.Width(150))){
+                MonobitNetwork.ConnectServer("v1.0");
+            }
         }
     }
 }
