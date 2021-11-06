@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: 896729872755779802}
   m_Layer: 0
   m_Name: Bacteria
-  m_TagString: Player
+  m_TagString: enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -139,9 +139,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d1c33461ff5f81e44a23f6df8236f7af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 0
   state: 0
   movepoint: {x: 0, y: 0}
+  hp: 0
 --- !u!114 &4580557666961174840
 MonoBehaviour:
   m_ObjectHideFlags: 0

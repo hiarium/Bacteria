@@ -358,6 +358,7 @@
 "Assets/Monobit Unity Networking/Samples/Scripts/SimpleChat/SimpleChat.cs"
 "Assets/Monobit Unity Networking/Support/MonobitAutoLoginTemplate.cs"
 "Assets/Monobit Unity Networking/Support/MonobitPlayerMoveTemplate.cs"
+"Assets/NewBehaviourScript.cs"
 "Assets/Script/Bacteria.cs"
 "Assets/Script/GameManager.cs"
 "Assets/Script/HomeScript.cs"

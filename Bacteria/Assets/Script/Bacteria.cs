@@ -6,14 +6,16 @@ using MonobitEngine;
 
 public class Bacteria : MonobitEngine.MonoBehaviour
 {
-    public float speed;
     public char state;
     public Vector2 movepoint;
+    public int hp;
     private float time=1;
     private Coroutine div;
-    private Rigidbody2D rb;
+    private Coroutine fig;
     private Vector2 direction;
-    private Vector2 bpos;
+    private Bacteria enemy;
+    private GameManager game_maneger;
+    private RaycastHit2D hit;
     MonobitEngine.MonobitView m_MonobitView = null;
     
     void Awake()
@@ -37,11 +39,10 @@ public class Bacteria : MonobitEngine.MonoBehaviour
 
     // Start is called before the first frame update
     void Start() {
-        speed = 0.8f;
-        rb = this.GetComponent<Rigidbody2D>();
-        state = 'D';
-        bpos=transform.position;
         transform.parent =GameObject.Find("Canvas").transform;
+        game_maneger = GameObject.Find("GameManager").GetComponent<GameManager>();
+        state = 'D';
+        hp=100;
     }
 
     // Update is called once per frame
@@ -53,16 +54,15 @@ public class Bacteria : MonobitEngine.MonoBehaviour
         }
         // 状態変数によって行動を分岐
         // 分裂(Division)
-        /*
         if(state=='D'){
             if(div==null){
                 div = StartCoroutine("Division");
             }
         }else if(div!=null){
+            //コルーチンスタート済みでD以外になった時
             StopCoroutine(div);
             div=null;
         }
-        */
         // 選択(Select)
         if(state=='S'){
             this.GetComponent<Image>().color = GetAlphaColor();
@@ -74,28 +74,64 @@ public class Bacteria : MonobitEngine.MonoBehaviour
         }
         // 移動(Move)
         if(state=='M'){
+            Vector2 direction=new Vector2(0,0);
+            float speed=1.0f * Time.deltaTime;
+            // 移動方向判断
+            if(movepoint.x>0.1f){
+                direction.x=0.27f;;
+            }else if(movepoint.x<-0.1f){
+                direction.x=-0.27f;;
+            }else{
+                direction.x=0;
+            }
+            if(movepoint.y>0.1f){
+                direction.y=0.27f;;
+            }else if(movepoint.y<-0.1f){
+                direction.y=-0.27f;;
+            }else{
+                direction.y=0;
+            }
+            // 移動方向にオブジェクトがあったら移動しない
+            hit = Physics2D.Raycast((Vector2)transform.InverseTransformPoint(transform.position),direction);
+            Debug.DrawRay ((Vector2)transform.InverseTransformPoint(transform.position),direction, Color.red, 0.01f, false);
+            try{
+                if(hit.collider.gameObject.tag=="Player"){
+                    speed=0.0f;
+                }
+            }catch{}
             // 移動処理
-            if(movepoint.x>transform.position.x){
-                rb.velocity = new Vector2(speed,rb.velocity.y);
-            }else if(movepoint.x<transform.position.x){
-                rb.velocity = new Vector2(-speed,rb.velocity.y);
+            if(movepoint.x>0.1f){
+                transform.position+=new Vector3(speed,0,0);
+                movepoint.x-=speed;
+            }else if(movepoint.x<-0.1f){
+                transform.position-=new Vector3(speed,0,0);
+                movepoint.x+=speed;
             }
-            if(movepoint.y>transform.position.y){
-                rb.velocity = new Vector2(rb.velocity.x,speed);
-            }else if(movepoint.y<transform.position.y){
-                rb.velocity = new Vector2(rb.velocity.x,-speed);
+            if(movepoint.y>0.1f){
+                transform.position+=new Vector3(0,speed,0);
+                movepoint.y-=speed;
+            }else if(movepoint.y<-0.1f){
+                transform.position-=new Vector3(0,speed,0);
+                movepoint.y+=speed;
             }
-            // 終了判定
-            if(Mathf.Abs(movepoint.x-transform.position.x)<0.01f &&Mathf.Abs(movepoint.y-transform.position.y)<0.01f||(Mathf.Abs(bpos.x-transform.position.x)<0.01f &&Mathf.Abs(bpos.y-transform.position.y)<0.01f&&bpos.x-transform.position.x!=0)){
+
+            if(Mathf.Abs(movepoint.x)<0.1f &&Mathf.Abs(movepoint.y)<0.1f){
                 state='D';
             }
-            bpos=transform.position;
-        }else{
-            rb.velocity = new Vector2(0, 0);
         }
         // 戦闘(Fight)
         if(state=='F'){
-
+            if(fig==null){
+                fig = StartCoroutine("Fight");
+            }
+        }else if(fig!=null){
+            //コルーチンスタート済みでF以外になった時
+            StopCoroutine(fig);
+            fig=null;
+        }
+        if(hp<=0){
+            MonobitNetwork.Destroy(m_MonobitView);
+            game_maneger.counter-=1;
         }
     }
 
@@ -103,31 +139,55 @@ public class Bacteria : MonobitEngine.MonoBehaviour
     {
         Vector3 local = transform.InverseTransformPoint (transform.position);
         direction=local+new Vector3(-1.02f,1.02f,0);
-        RaycastHit2D hit;
         while (state=='D')
         {
             yield return new WaitForSeconds(3.0f);
-            for(int i=0;i<816;i++){
-                hit = Physics2D.BoxCast(transform.TransformPoint (direction), transform.lossyScale, 0, Vector2.zero);
-                if(hit.collider==null){
-                    Instantiate ((GameObject)Resources.Load("Bacteria"),transform.TransformPoint (direction), Quaternion.identity,GameObject.Find("Canvas").transform);
-                    direction=local+new Vector3(-1.02f,1.02f,0);
-                    break;
+            if(game_maneger.counter<50){
+                for(int i=0;i<816;i++){
+                    hit = Physics2D.BoxCast(transform.TransformPoint (direction), transform.lossyScale, 0, Vector2.zero);
+                    if(hit.collider==null){
+                        if(MonobitNetwork.isHost){
+                            MonobitNetwork.Instantiate ("Bacteria",transform.TransformPoint (direction), Quaternion.identity,0).tag = "Player";
+                        }else{
+                            MonobitNetwork.Instantiate ("Bacteria2",transform.TransformPoint (direction), Quaternion.identity,0).tag = "Player";
+                        }
+                        direction=local+new Vector3(-1.02f,1.02f,0);
+                        game_maneger.counter+=1;
+                        break;
+                    }
+                    if(i<204){
+                        direction.x+=0.01f;
+                        continue;
+                    }else if(i<408){
+                        direction.y-=0.01f;
+                        continue;
+                    }else if(i<612){
+                        direction.x-=0.01f;
+                        continue;
+                    }else{
+                        direction.y+=0.01f;
+                    }
                 }
-                if(i<204){
-                    direction.x+=0.01f;
-                    continue;
-                }else if(i<408){
-                    direction.y-=0.01f;
-                    continue;
-                }else if(i<612){
-                    direction.x-=0.01f;
-                    continue;
-                }else{
-                    direction.y+=0.01f;
-                }
+            }else{
+                continue;
             }
         }
+    }
+
+    private IEnumerator Fight()
+    {
+        while(state=='F'){
+            yield return new WaitForSeconds(2.0f);
+            //ダメージを送信
+            monobitView.RPC("Damage", MonobitEngine.MonobitTargets.Others, 25);
+        }
+    }
+    
+    // ダメージ受信メソッド
+    [MunRPC]
+    void Damage(int damage)
+    {
+       enemy.hp-=damage;
     }
 
     Color GetAlphaColor() {
@@ -135,23 +195,23 @@ public class Bacteria : MonobitEngine.MonoBehaviour
         Color color =new Color(255,255,255, Mathf.Sin(time) * 0.5f + 0.5f);
         return color;
     }
-    /*
-    void OnCollisionEnter2D(Collision2D collision)
+    
+    void OnCollisionEnter2D(Collision2D coll)
     {
-        if(collision.gameObject.tag=="enemy"){
+        if(coll.gameObject.tag!=transform.tag){
+            enemy=coll.gameObject.GetComponent<Bacteria>();
             state='F';
-        }else if(collision.gameObject.tag=="stage"){
+        }
+        if(coll.gameObject.tag=="stage"){
             state='D';
         }
     }
-
-    void OnCollisionExit2D(Collision2D collision)
+    void OnCollisionExit2D(Collision2D coll)
     {
-        if(Mathf.Abs(movepoint.x-transform.position.x)<0.1f &&Mathf.Abs(movepoint.y-transform.position.y)<0.1f){
+        if(Mathf.Abs(movepoint.x)>0.1f ||Mathf.Abs(movepoint.y)>0.1f){
             state='M';
         }else{
             state='D';
         }
     }
-    */
 }

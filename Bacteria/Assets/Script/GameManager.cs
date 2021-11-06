@@ -5,6 +5,7 @@ using MonobitEngine;
 
 public class GameManager : MonobitEngine.MonoBehaviour
 {
+    public int counter=0;
     private bool first=true;
     private LineRenderer line1;
     private LineRenderer lRend;
@@ -18,8 +19,8 @@ public class GameManager : MonobitEngine.MonoBehaviour
     
     void Start()
     {
-        line1 = gameObject.GetComponent<LineRenderer>();
-        collider = gameObject.GetComponent<PolygonCollider2D>();
+        line1 = transform.GetComponent<LineRenderer>();
+        collider = transform.GetComponent<PolygonCollider2D>();
     }
 
     void Update()
@@ -32,8 +33,8 @@ public class GameManager : MonobitEngine.MonoBehaviour
             start_pos = Camera.main.ScreenToWorldPoint(cameraPosition);
 
             // 描画されてない時
-            if(!circle){
-                line1.positionCount = 1;
+            if(line1.positionCount==0){
+                line1.positionCount=1;
                 //line1の起点設定
                 line1.SetPosition(0, start_pos);
                 before_pos = start_pos;
@@ -46,22 +47,40 @@ public class GameManager : MonobitEngine.MonoBehaviour
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                 RaycastHit2D hit2d = Physics2D.Raycast((Vector2)ray.origin, (Vector2)ray.direction);
                 //円内の時
-                if (hit2d.collider&&hit2d.transform.gameObject.name == "GameManager") {
-                    // line2生成
-                    line2 = new GameObject ("Line");
-                    line2.transform.parent = GameObject.Find("Canvas").transform;
-                    lRend = line2.AddComponent<LineRenderer> ();
-                    lRend.SetVertexCount(2);
-                    lRend.SetColors(new Color(0,37,255),new Color(0,0.13f,1));
-                    lRend.material = new Material(Shader.Find("Sprites/Default"));
-                    lRend.SetWidth (0.1f, 0.1f);
-                    lRend.SetPosition (0, start_pos);
-                    lRend.SetPosition (1, start_pos);
-                }
-                // 円外の時
-                else{
+                try
+                {
+                    if (hit2d.transform.gameObject.name == "GameManager") {
+                        // line2生成
+                        line2 = new GameObject ("Line");
+                        line2.transform.parent = GameObject.Find("Canvas").transform;
+                        lRend = line2.AddComponent<LineRenderer> ();
+                        lRend.SetVertexCount(2);
+                        lRend.SetColors(new Color(0,37,255),new Color(0,0.13f,1));
+                        lRend.material = new Material(Shader.Find("Sprites/Default"));
+                        lRend.SetWidth (0.1f, 0.1f);
+                        lRend.SetPosition (0, start_pos);
+                        lRend.SetPosition (1, start_pos);
+                    }
+                    // 円外の時
+                    else{
+                        // 既存line1破壊
+                        line1.positionCount = 0;
+                        collider.pathCount=0;
+                        circle = false;
+                        line1.loop = false;
+                        while(selectObject.Count!=0){
+                            selectObject[0].GetComponent<Bacteria>().state = 'D';
+                            selectObject.RemoveAt(0);
+                        }
+                        //line1の再描画
+                        line1.SetPosition(0, start_pos);
+                        before_pos = start_pos;
+                        //コルーチンスタート
+                        StartCoroutine("Line");
+                    }
+                }catch{ //例外は円外の時のみ
                     // 既存line1破壊
-                    line1.positionCount = 1;
+                    line1.positionCount = 0;
                     collider.pathCount=0;
                     circle = false;
                     line1.loop = false;
@@ -91,19 +110,20 @@ public class GameManager : MonobitEngine.MonoBehaviour
                 Vector3[] lPos = new Vector3[2];
                 lRend.GetPositions(lPos);
                 while(selectObject.Count!=0){
+                    selectObject[0].GetComponent<Bacteria>().movepoint = lPos[1]-lPos[0];
                     selectObject[0].GetComponent<Bacteria>().state = 'M';
-                    selectObject[0].GetComponent<Bacteria>().movepoint = lPos[1];
                     selectObject.RemoveAt(0);
                 }
                 // 全line削除
                 Destroy(line2);
-                line1.positionCount = 1;
+                line1.positionCount = 0;
                 collider.pathCount=0;
                 circle = false;
                 line1.loop = false;
             }
         }
 
+        // ルームの人数が2人になったらゲームスタート
         if (MonobitNetwork.room.playerCount==2 && first){
             float x_renge;
             string character;
@@ -113,12 +133,13 @@ public class GameManager : MonobitEngine.MonoBehaviour
                 character = "Bacteria";
             }else{
                 x_renge = 5.0f;
-                character = "enemy";
+                character = "Bacteria2";
             }
-            for(int i=0;i<10;i++){
+            for(int i=0;i<20;i++){
                 float x = Random.Range(x_renge, x_renge+1.6f);
         		float y = Random.Range(-1.1f, 1.1f);
-                MonobitNetwork.Instantiate(character,new Vector3(x,y,0), Quaternion.identity,0);
+                MonobitNetwork.Instantiate(character,new Vector3(x,y,0), Quaternion.identity,0).tag="Player";
+                counter+=1;
             }
             first=false;
         }
@@ -155,7 +176,6 @@ public class GameManager : MonobitEngine.MonoBehaviour
                 }
                 //　lineの終点と起点をそろえる
                 line1.loop = true;
-                circle = true;
 
                 Vector3[] collider_list = new Vector3[line1.positionCount];
                 Vector2[] collider_list_2 = new Vector2[line1.positionCount];
@@ -164,8 +184,15 @@ public class GameManager : MonobitEngine.MonoBehaviour
                 for (int i = 0; i< line1.positionCount; i++){
                     collider_list_2[i]= transform.TransformPoint(collider_list[i]);
                 }
-                // lineと同じ形のコライダーを一瞬だけ作成
+                // lineと同じ形のコライダーを作成
                 collider.SetPath(0, collider_list_2);
+                yield return new WaitForSeconds(0.1f);
+                // 選択対照がなかったら削除
+                if(selectObject.Count==0){
+                    line1.positionCount = 0;
+                    collider.pathCount=0;
+                    line1.loop = false;
+                }
                 yield break;
             }
         }
