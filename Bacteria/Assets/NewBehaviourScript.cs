@@ -13,6 +13,10 @@ public class NewBehaviourScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        transform.position+=new Vector3(0.01f,0.01f,0);
+        RaycastHit2D hit = Physics2D.Raycast((Vector2)transform.position + new Vector2(0.6f,0.6f),new Vector2(1,1),1.0f);
+        Debug.DrawRay((Vector2)transform.position + new Vector2(0.6f,0.6f),new Vector2(1,1), Color.red);
+        if(hit){
+            print(hit.collider.gameObject.name);
+        }
     }
 }

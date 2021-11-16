@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using MonobitEngine;
+using UnityEngine.UI;
 
 public class GameManager : MonobitEngine.MonoBehaviour
 {
@@ -13,14 +14,16 @@ public class GameManager : MonobitEngine.MonoBehaviour
     private PolygonCollider2D collider;
     private Vector3 start_pos;
     private Vector3 before_pos;
-    private bool circle = false;
     private List<GameObject> selectObject = new List<GameObject>();
     private string roomName = "";
-    
+    private Text score_text;
+    private int enemy_score=20;
+
     void Start()
     {
         line1 = transform.GetComponent<LineRenderer>();
         collider = transform.GetComponent<PolygonCollider2D>();
+        score_text = GameObject.Find("Text").GetComponent<Text>();
     }
 
     void Update()
@@ -45,11 +48,11 @@ public class GameManager : MonobitEngine.MonoBehaviour
             else{
                 // 円内のクリックか判定
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                RaycastHit2D hit2d = Physics2D.Raycast((Vector2)ray.origin, (Vector2)ray.direction);
-                //円内の時
-                try
-                {
-                    if (hit2d.transform.gameObject.name == "GameManager") {
+                foreach (RaycastHit2D hit2d in Physics2D.RaycastAll((Vector2)ray.origin, (Vector2)ray.direction)){
+                    if(hit2d.transform.gameObject.name != "GameManager"){
+                        continue;
+                    }else{
+                        // 円内の時
                         // line2生成
                         line2 = new GameObject ("Line");
                         line2.transform.parent = GameObject.Find("Canvas").transform;
@@ -61,34 +64,19 @@ public class GameManager : MonobitEngine.MonoBehaviour
                         lRend.SetPosition (0, start_pos);
                         lRend.SetPosition (1, start_pos);
                     }
-                    // 円外の時
-                    else{
-                        // 既存line1破壊
-                        line1.positionCount = 0;
-                        collider.pathCount=0;
-                        circle = false;
-                        line1.loop = false;
-                        while(selectObject.Count!=0){
-                            selectObject[0].GetComponent<Bacteria>().state = 'D';
-                            selectObject.RemoveAt(0);
-                        }
-                        //line1の再描画
-                        line1.SetPosition(0, start_pos);
-                        before_pos = start_pos;
-                        //コルーチンスタート
-                        StartCoroutine("Line");
-                    }
-                }catch{ //例外は円外の時のみ
+                }
+                // 円外の時
+                if(line2==null){
                     // 既存line1破壊
                     line1.positionCount = 0;
                     collider.pathCount=0;
-                    circle = false;
                     line1.loop = false;
                     while(selectObject.Count!=0){
                         selectObject[0].GetComponent<Bacteria>().state = 'D';
                         selectObject.RemoveAt(0);
                     }
                     //line1の再描画
+                    line1.positionCount = 1;
                     line1.SetPosition(0, start_pos);
                     before_pos = start_pos;
                     //コルーチンスタート
@@ -118,7 +106,6 @@ public class GameManager : MonobitEngine.MonoBehaviour
                 Destroy(line2);
                 line1.positionCount = 0;
                 collider.pathCount=0;
-                circle = false;
                 line1.loop = false;
             }
         }
@@ -143,6 +130,9 @@ public class GameManager : MonobitEngine.MonoBehaviour
             }
             first=false;
         }
+        
+        monobitView.RPC("Score", MonobitEngine.MonobitTargets.Others, counter);
+        score_text.text=enemy_score+" VS "+counter;
     }
 
     private IEnumerator Line()
@@ -259,5 +249,10 @@ public class GameManager : MonobitEngine.MonoBehaviour
                 MonobitNetwork.ConnectServer("v1.0");
             }
         }
+    }
+    [MunRPC]
+    void Score(int score)
+    {
+       enemy_score=score;
     }
 }

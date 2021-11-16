@@ -9,13 +9,14 @@ public class Bacteria : MonobitEngine.MonoBehaviour
     public char state;
     public Vector2 movepoint;
     public int hp;
+    private int stamina=10;
     private float time=1;
+    private float stuck_time=0;
     private Coroutine div;
     private Coroutine fig;
     private Vector2 direction;
     private Bacteria enemy;
     private GameManager game_maneger;
-    private RaycastHit2D hit;
     MonobitEngine.MonobitView m_MonobitView = null;
     
     void Awake()
@@ -65,6 +66,7 @@ public class Bacteria : MonobitEngine.MonoBehaviour
         }
         // 選択(Select)
         if(state=='S'){
+            movepoint=new Vector2(0,0);
             this.GetComponent<Image>().color = GetAlphaColor();
         }else{
             if(GetComponent<Image>().color.a!=1){
@@ -74,31 +76,30 @@ public class Bacteria : MonobitEngine.MonoBehaviour
         }
         // 移動(Move)
         if(state=='M'){
+            stamina=1;
             Vector2 direction=new Vector2(0,0);
             float speed=1.0f * Time.deltaTime;
             // 移動方向判断
             if(movepoint.x>0.1f){
-                direction.x=0.27f;;
+                direction.x=0.251f;
             }else if(movepoint.x<-0.1f){
-                direction.x=-0.27f;;
+                direction.x=-0.251f;
             }else{
                 direction.x=0;
             }
             if(movepoint.y>0.1f){
-                direction.y=0.27f;;
+                direction.y=0.251f;
             }else if(movepoint.y<-0.1f){
-                direction.y=-0.27f;;
+                direction.y=-0.251f;
             }else{
                 direction.y=0;
             }
-            // 移動方向にオブジェクトがあったら移動しない
-            hit = Physics2D.Raycast((Vector2)transform.InverseTransformPoint(transform.position),direction);
-            Debug.DrawRay ((Vector2)transform.InverseTransformPoint(transform.position),direction, Color.red, 0.01f, false);
-            try{
-                if(hit.collider.gameObject.tag=="Player"){
-                    speed=0.0f;
-                }
-            }catch{}
+            // 移動方向にオブジェクトがあったらspeedを0にする
+            RaycastHit2D hit = Physics2D.Raycast((Vector2)transform.position+direction,direction,0.01f);
+            if(hit && hit.collider.gameObject.tag=="Player"){
+                speed=0.0f;
+                state='T'; // Tは障害物があって移動出来なくなった状態
+            }
             // 移動処理
             if(movepoint.x>0.1f){
                 transform.position+=new Vector3(speed,0,0);
@@ -117,6 +118,35 @@ public class Bacteria : MonobitEngine.MonoBehaviour
 
             if(Mathf.Abs(movepoint.x)<0.1f &&Mathf.Abs(movepoint.y)<0.1f){
                 state='D';
+            }
+        }
+        if(state=='T'){
+            Vector2 direction=new Vector2(0,0);
+            // 移動方向判断
+            if(movepoint.x>0.1f){
+                direction.x=0.251f;
+            }else if(movepoint.x<-0.1f){
+                direction.x=-0.251f;
+            }else{
+                direction.x=0;
+            }
+            if(movepoint.y>0.1f){
+                direction.y=0.251f;
+            }else if(movepoint.y<-0.1f){
+                direction.y=-0.251f;
+            }else{
+                direction.y=0;
+            }
+            // 移動方向に障害物があるか判断
+            RaycastHit2D hit = Physics2D.Raycast((Vector2)transform.position+direction,direction,0.01f);
+            if(hit && hit.collider.gameObject.tag=="Player"){
+                stuck_time +=Time.deltaTime;
+            }
+            // 1秒以上動けなかったらDへ移行
+            if(stuck_time>=1.0f){
+                stuck_time=0;
+                state='D';
+                movepoint=new Vector2(0,0);
             }
         }
         // 戦闘(Fight)
@@ -139,12 +169,12 @@ public class Bacteria : MonobitEngine.MonoBehaviour
     {
         Vector3 local = transform.InverseTransformPoint (transform.position);
         direction=local+new Vector3(-1.02f,1.02f,0);
-        while (state=='D')
+        while (state=='D'&&stamina<=20)
         {
-            yield return new WaitForSeconds(3.0f);
-            if(game_maneger.counter<50){
+            yield return new WaitForSeconds(stamina*(Random.value+0.5f));
+            if(game_maneger.counter<100){
                 for(int i=0;i<816;i++){
-                    hit = Physics2D.BoxCast(transform.TransformPoint (direction), transform.lossyScale, 0, Vector2.zero);
+                    RaycastHit2D hit = Physics2D.BoxCast(transform.TransformPoint (direction), transform.lossyScale, 0, Vector2.zero);
                     if(hit.collider==null){
                         if(MonobitNetwork.isHost){
                             MonobitNetwork.Instantiate ("Bacteria",transform.TransformPoint (direction), Quaternion.identity,0).tag = "Player";
@@ -152,6 +182,7 @@ public class Bacteria : MonobitEngine.MonoBehaviour
                             MonobitNetwork.Instantiate ("Bacteria2",transform.TransformPoint (direction), Quaternion.identity,0).tag = "Player";
                         }
                         direction=local+new Vector3(-1.02f,1.02f,0);
+                        stamina+=10;
                         game_maneger.counter+=1;
                         break;
                     }
@@ -177,9 +208,9 @@ public class Bacteria : MonobitEngine.MonoBehaviour
     private IEnumerator Fight()
     {
         while(state=='F'){
-            yield return new WaitForSeconds(2.0f);
+            yield return new WaitForSeconds(1.5f);
             //ダメージを送信
-            monobitView.RPC("Damage", MonobitEngine.MonobitTargets.Others, 25);
+            monobitView.RPC("Damage", MonobitEngine.MonobitTargets.Others, 50);
         }
     }
     
@@ -198,12 +229,13 @@ public class Bacteria : MonobitEngine.MonoBehaviour
     
     void OnCollisionEnter2D(Collision2D coll)
     {
-        if(coll.gameObject.tag!=transform.tag){
-            enemy=coll.gameObject.GetComponent<Bacteria>();
-            state='F';
-        }
+        
         if(coll.gameObject.tag=="stage"){
             state='D';
+        }
+        else if(coll.gameObject.tag!=transform.tag){
+            enemy=coll.gameObject.GetComponent<Bacteria>();
+            state='F';
         }
     }
     void OnCollisionExit2D(Collision2D coll)
