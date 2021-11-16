@@ -7,6 +7,7 @@ using UnityEngine.UI;
 public class GameManager : MonobitEngine.MonoBehaviour
 {
     public int counter=0;
+    public int enemy_counter=20;
     private bool first=true;
     private LineRenderer line1;
     private LineRenderer lRend;
@@ -16,14 +17,15 @@ public class GameManager : MonobitEngine.MonoBehaviour
     private Vector3 before_pos;
     private List<GameObject> selectObject = new List<GameObject>();
     private string roomName = "";
-    private Text score_text;
-    private int enemy_score=20;
+    private GameObject blue_gauge;
+    private GameObject red_gauge;
 
     void Start()
     {
         line1 = transform.GetComponent<LineRenderer>();
         collider = transform.GetComponent<PolygonCollider2D>();
-        score_text = GameObject.Find("Text").GetComponent<Text>();
+        blue_gauge = GameObject.Find("BlueGauge");
+        red_gauge = GameObject.Find("RedGauge");
     }
 
     void Update()
@@ -72,8 +74,12 @@ public class GameManager : MonobitEngine.MonoBehaviour
                     collider.pathCount=0;
                     line1.loop = false;
                     while(selectObject.Count!=0){
-                        selectObject[0].GetComponent<Bacteria>().state = 'D';
-                        selectObject.RemoveAt(0);
+                        try{
+                            selectObject[0].GetComponent<Bacteria>().state = 'D';
+                            selectObject.RemoveAt(0);
+                        }catch(MissingReferenceException e){
+                            selectObject.RemoveAt(0);
+                        }
                     }
                     //line1の再描画
                     line1.positionCount = 1;
@@ -98,9 +104,13 @@ public class GameManager : MonobitEngine.MonoBehaviour
                 Vector3[] lPos = new Vector3[2];
                 lRend.GetPositions(lPos);
                 while(selectObject.Count!=0){
-                    selectObject[0].GetComponent<Bacteria>().movepoint = lPos[1]-lPos[0];
-                    selectObject[0].GetComponent<Bacteria>().state = 'M';
-                    selectObject.RemoveAt(0);
+                    try{
+                        selectObject[0].GetComponent<Bacteria>().movepoint = lPos[1]-lPos[0];
+                        selectObject[0].GetComponent<Bacteria>().state = 'M';
+                        selectObject.RemoveAt(0);
+                    }catch(MissingReferenceException e) {
+                        selectObject.RemoveAt(0);
+                    }
                 }
                 // 全line削除
                 Destroy(line2);
@@ -131,8 +141,14 @@ public class GameManager : MonobitEngine.MonoBehaviour
             first=false;
         }
         
-        monobitView.RPC("Score", MonobitEngine.MonobitTargets.Others, counter);
-        score_text.text=enemy_score+" VS "+counter;
+        monobitView.RPC("Counter", MonobitEngine.MonobitTargets.Others, counter);
+        if(MonobitNetwork.isHost){
+            blue_gauge.transform.localScale=new Vector2((float)counter/(counter+enemy_counter),1);
+            red_gauge.transform.localScale=new Vector2((float)enemy_counter/(counter+enemy_counter),1);
+        }else{
+            red_gauge.transform.localScale=new Vector2((float)counter/(counter+enemy_counter),1);
+            blue_gauge.transform.localScale=new Vector2((float)enemy_counter/(counter+enemy_counter),1);
+        }
     }
 
     private IEnumerator Line()
@@ -251,8 +267,8 @@ public class GameManager : MonobitEngine.MonoBehaviour
         }
     }
     [MunRPC]
-    void Score(int score)
+    void Counter(int enemy)
     {
-       enemy_score=score;
+       enemy_counter=enemy;
     }
 }

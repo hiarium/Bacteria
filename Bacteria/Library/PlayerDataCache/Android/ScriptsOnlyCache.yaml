@@ -130,6 +130,8 @@ ScriptsOnlyBuild:
     - Class: 114
       Script: {instanceID: 1592}
     - Class: 114
+      Script: {instanceID: 2196}
+    - Class: 114
       Script: {instanceID: 2532}
     - Class: 114
       Script: {instanceID: 2590}
@@ -138,10 +140,14 @@ ScriptsOnlyBuild:
     - Class: 114
       Script: {instanceID: 2922}
     - Class: 114
+      Script: {instanceID: 2942}
+    - Class: 114
       Script: {instanceID: 3142}
     - Class: 115
       Script: {instanceID: 0}
     - Class: 120
+      Script: {instanceID: 0}
+    - Class: 128
       Script: {instanceID: 0}
     - Class: 157
       Script: {instanceID: 0}
@@ -477,7 +483,7 @@ ScriptsOnlyBuild:
     className: EnumerableTestState
   - hash:
       serializedVersion: 2
-      Hash: d1c7617497cf20b5232a6dab19bd888e
+      Hash: 3a119489894a0a73ea113c81a6b8f032
     assemblyName: Assembly-CSharp.dll
     namespaceName: 
     className: GameManager

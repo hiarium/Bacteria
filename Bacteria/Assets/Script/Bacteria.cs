@@ -229,20 +229,18 @@ public class Bacteria : MonobitEngine.MonoBehaviour
     
     void OnCollisionEnter2D(Collision2D coll)
     {
-        
         if(coll.gameObject.tag=="stage"){
             state='D';
-        }
-        else if(coll.gameObject.tag!=transform.tag){
+        }else if(coll.gameObject.tag!=transform.tag && state!='S'){
             enemy=coll.gameObject.GetComponent<Bacteria>();
             state='F';
         }
     }
     void OnCollisionExit2D(Collision2D coll)
     {
-        if(Mathf.Abs(movepoint.x)>0.1f ||Mathf.Abs(movepoint.y)>0.1f){
+        if(Mathf.Abs(movepoint.x)>0.1f || Mathf.Abs(movepoint.y)>0.1f){
             state='M';
-        }else{
+        }else if(state!='S'){
             state='D';
         }
     }
